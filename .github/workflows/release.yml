@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release Windows app
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "0.1.${{ github.run_number }}"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test ReadTray.slnx -c Release
+
+      - name: Publish
+        shell: pwsh
+        run: ./scripts/publish.ps1 -Configuration Release -Runtime win-x64 -Version '${{ steps.version.outputs.version }}'
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $publishDir = Join-Path $PWD 'artifacts/publish/ReadTray'
+          $zip = Join-Path $PWD "artifacts/ReadTray-$version-win-x64.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zip -Force
+          $hash = Get-FileHash $zip -Algorithm SHA256
+          $shaPath = "$zip.sha256"
+          "$($hash.Hash)  $(Split-Path $zip -Leaf)" | Set-Content $shaPath -Encoding ascii
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          "sha=$shaPath" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ steps.version.outputs.tag }}'
+          $title = "ReadTray ${{ steps.version.outputs.version }}"
+          $notes = @"
+          Automated ReadTray release from main.
+
+          Install:
+          1. Download the win-x64 zip.
+          2. Extract it to a folder.
+          3. Run ReadTray.App.exe.
+
+          SHA256 checksum is attached.
+          "@
+          gh release create $tag `
+            '${{ steps.package.outputs.zip }}' `
+            '${{ steps.package.outputs.sha }}' `
+            --title $title `
+            --notes $notes `
+            --latest

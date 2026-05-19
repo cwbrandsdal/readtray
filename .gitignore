@@ -1,0 +1,13 @@
+bin/
+obj/
+artifacts/
+.vs/
+*.user
+*.suo
+*.log
+*.tmp
+settings.json
+secrets.json
+*.key
+*.pfx
+*.publishsettings

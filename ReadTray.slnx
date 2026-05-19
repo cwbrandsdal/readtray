@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ReadTray.App/ReadTray.App.csproj" />
+    <Project Path="src/ReadTray.Core/ReadTray.Core.csproj" />
+    <Project Path="src/ReadTray.Infrastructure/ReadTray.Infrastructure.csproj" />
+    <Project Path="src/ReadTray.Tests/ReadTray.Tests.csproj" />
+    <Project Path="src/ReadTray.Tts.ElevenLabs/ReadTray.Tts.ElevenLabs.csproj" />
+    <Project Path="src/ReadTray.Tts.Windows/ReadTray.Tts.Windows.csproj" />
+  </Folder>
+</Solution>
