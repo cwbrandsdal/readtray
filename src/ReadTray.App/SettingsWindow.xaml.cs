@@ -7,13 +7,16 @@ public partial class SettingsWindow : Window
 {
     private readonly ISettingsService _settingsService;
     private readonly IEnumerable<ITtsProvider> _providers;
+    private readonly IUpdateService _updateService;
     private AppSettings _settings = new();
 
-    public SettingsWindow(ISettingsService settingsService, IEnumerable<ITtsProvider> providers)
+    public SettingsWindow(ISettingsService settingsService, IEnumerable<ITtsProvider> providers, IUpdateService updateService)
     {
         InitializeComponent();
         _settingsService = settingsService;
         _providers = providers;
+        _updateService = updateService;
+        VersionText.Text = $"v{AppVersionInfo.Current}";
         Loaded += async (_, _) => await LoadSettingsAsync();
     }
 
@@ -49,6 +52,48 @@ public partial class SettingsWindow : Window
 
     private async void ProviderBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => await LoadVoicesAsync();
     private async void RefreshVoices_Click(object sender, RoutedEventArgs e) => await LoadVoicesAsync();
+
+    private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        await CheckForUpdatesAsync();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        UpdateStatusText.Text = "Checking for updates...";
+        try
+        {
+            var result = await _updateService.CheckForUpdatesAsync(CancellationToken.None);
+            if (!result.IsUpdateAvailable)
+            {
+                UpdateStatusText.Text = result.Message ?? "ReadTray is up to date.";
+                return;
+            }
+
+            UpdateStatusText.Text = $"{result.Message} Current: {result.CurrentVersion}. Latest: {result.LatestVersion}.";
+            var message = $"{result.Message}\n\nCurrent: {result.CurrentVersion}\nLatest: {result.LatestVersion}\nPackage: {result.AssetName}\n\nDownload and install this update now?";
+            var install = System.Windows.MessageBox.Show(message, "ReadTray update available", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (install == MessageBoxResult.Yes)
+            {
+                await DownloadAndApplyUpdateAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = $"Update check failed: {ex.Message}";
+            System.Windows.MessageBox.Show($"Update check failed: {ex.Message}", "ReadTray updates", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private async Task DownloadAndApplyUpdateAsync()
+    {
+        var progress = new Progress<int>(value => UpdateStatusText.Text = $"Downloading update... {value}%");
+        var result = await _updateService.DownloadAndApplyLatestUpdateAsync(progress, CancellationToken.None);
+        if (!result.IsUpdateAvailable)
+        {
+            UpdateStatusText.Text = result.Message ?? "ReadTray is up to date.";
+        }
+    }
 
     private async void Save_Click(object sender, RoutedEventArgs e)
     {

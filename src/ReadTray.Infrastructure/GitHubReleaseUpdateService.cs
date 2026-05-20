@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Net;
+using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using ReadTray.Core;
 using Velopack;
@@ -31,7 +33,24 @@ public sealed class GitHubReleaseUpdateService : IUpdateService
         }
 
         _logger.LogInformation("Checking for Velopack updates. CurrentVersion={CurrentVersion} Repository={Repository}", current, RepositoryUrl);
-        var update = await manager.CheckForUpdatesAsync().WaitAsync(ct);
+        UpdateInfo? update;
+        try
+        {
+            update = await manager.CheckForUpdatesAsync().WaitAsync(ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning(ex, "Velopack update feed returned 404. Repository may be private or release assets may be unavailable. Repository={Repository}", RepositoryUrl);
+            return new UpdateCheckResult(
+                false,
+                current,
+                null,
+                RepositoryUrl + "/releases/latest",
+                null,
+                null,
+                "ReadTray could not access the GitHub release update feed. If the repository is private, in-app updates need a public release feed or an authenticated updater source.");
+        }
+
         return BuildResult(current, update, update is not null ? $"ReadTray {update.TargetFullRelease.Version} is available." : "ReadTray is up to date.");
     }
 
@@ -44,7 +63,24 @@ public sealed class GitHubReleaseUpdateService : IUpdateService
             return new UpdateCheckResult(false, current, null, RepositoryUrl + "/releases/latest", null, null, "Install ReadTray with the setup installer before using in-app updates.");
         }
 
-        var update = await manager.CheckForUpdatesAsync().WaitAsync(ct);
+        UpdateInfo? update;
+        try
+        {
+            update = await manager.CheckForUpdatesAsync().WaitAsync(ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning(ex, "Velopack update feed returned 404 while downloading update. Repository={Repository}", RepositoryUrl);
+            return new UpdateCheckResult(
+                false,
+                current,
+                null,
+                RepositoryUrl + "/releases/latest",
+                null,
+                null,
+                "ReadTray could not access the GitHub release update feed. If the repository is private, in-app updates need a public release feed or an authenticated updater source.");
+        }
+
         if (update is null)
         {
             return new UpdateCheckResult(false, current, null, RepositoryUrl + "/releases/latest", null, null, "ReadTray is up to date.");

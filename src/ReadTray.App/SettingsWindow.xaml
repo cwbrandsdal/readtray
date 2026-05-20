@@ -5,7 +5,14 @@
         Background="#F6F7F9">
     <ScrollViewer>
         <StackPanel Margin="24">
-            <TextBlock Text="ReadTray Settings" FontSize="22" FontWeight="SemiBold" Margin="0,0,0,18"/>
+            <Grid Margin="0,0,0,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="ReadTray Settings" FontSize="22" FontWeight="SemiBold"/>
+                <TextBlock x:Name="VersionText" Grid.Column="1" VerticalAlignment="Center" Foreground="#5D6470"/>
+            </Grid>
             <TextBlock Text="Provider"/>
             <ComboBox x:Name="ProviderBox" DisplayMemberPath="DisplayName" SelectedValuePath="Id" Margin="0,4,0,14" SelectionChanged="ProviderBox_SelectionChanged"/>
             <TextBlock Text="Voice"/>
@@ -37,6 +44,19 @@
                 <TextBlock x:Name="DuckAudioVolumeText" Grid.Column="2" Width="48" Margin="10,0,0,0" VerticalAlignment="Center"/>
             </Grid>
             <CheckBox x:Name="CheckForUpdatesBox" Content="Check for updates on startup" Margin="0,0,0,18"/>
+            <Border BorderBrush="#D7DCE3" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,0,18" Background="#FFFFFF">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="Updates" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="UpdateStatusText" Text="Use Check for updates to look for a new ReadTray release." TextWrapping="Wrap" Foreground="#5D6470" FontSize="12" Margin="0,4,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="Check for updates" Width="128" Height="34" Margin="14,0,0,0" Click="CheckForUpdates_Click"/>
+                </Grid>
+            </Border>
             <TextBlock Text="Hotkeys: Ctrl+Shift+F12 reads selection. Ctrl+Alt+Shift+Space reads clipboard. Custom hotkey editing is stored in settings.json for this MVP." TextWrapping="Wrap" Foreground="#5D6470" Margin="0,0,0,18"/>
             <StackPanel Orientation="Horizontal">
                 <Button Content="Save" Width="96" Height="34" Click="Save_Click"/>

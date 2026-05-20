@@ -15,7 +15,6 @@ public sealed class TrayService : IDisposable
     private readonly ISettingsService _settingsService;
     private readonly IUpdateService _updateService;
     private readonly ILogger<TrayService> _logger;
-    private readonly string _iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "ReadTray.ico");
     private Forms.NotifyIcon? _notifyIcon;
     private Icon? _trayIcon;
 
@@ -35,14 +34,12 @@ public sealed class TrayService : IDisposable
         menu.Items.Add("Read clipboard", null, (_, _) => _ = _coordinator.ReadClipboardAsync());
         menu.Items.Add("Stop reading", null, (_, _) => _coordinator.Stop());
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Check for updates", null, async (_, _) => await CheckForUpdatesAsync(showUpToDate: true));
         menu.Items.Add("Settings", null, (_, _) => ShowSettings());
         menu.Items.Add("Open logs", null, (_, _) => OpenLogs());
-        menu.Items.Add("About", null, (_, _) => System.Windows.MessageBox.Show("ReadTray\nFast selected-text-to-speech for Windows.", "About ReadTray"));
         menu.Items.Add("Quit", null, (_, _) => System.Windows.Application.Current.Shutdown());
 
-        _trayIcon = File.Exists(_iconPath) ? new Icon(_iconPath) : SystemIcons.Application;
-        _notifyIcon = new Forms.NotifyIcon { Icon = _trayIcon, Text = "ReadTray", Visible = true, ContextMenuStrip = menu };
+        _trayIcon = TrayIconFactory.Create();
+        _notifyIcon = new Forms.NotifyIcon { Icon = _trayIcon, Text = $"ReadTray {AppVersionInfo.Current}", Visible = true, ContextMenuStrip = menu };
         _notifyIcon.DoubleClick += (_, _) => ShowSettings();
         _ = CheckForUpdatesOnStartupAsync();
     }
@@ -115,7 +112,7 @@ public sealed class TrayService : IDisposable
         {
             if (_notifyIcon is not null)
             {
-                _notifyIcon.Text = $"ReadTray updating {value}%";
+                _notifyIcon.Text = $"ReadTray {AppVersionInfo.Current} updating {value}%";
             }
         });
 
