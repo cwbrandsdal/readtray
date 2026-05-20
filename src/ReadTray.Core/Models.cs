@@ -13,6 +13,8 @@ public sealed record AudioChunk(byte[] Data, string ContentType);
 
 public sealed record TtsVoice(string Id, string DisplayName, string? Locale = null);
 
+public sealed record TtsModel(string Id, string DisplayName);
+
 public sealed record TtsRequest(string Text, string VoiceId, double Speed, string? ModelId = null);
 
 public sealed record PlaybackOptions(string? ContentType = null, double Speed = 1.0);

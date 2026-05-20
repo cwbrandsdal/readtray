@@ -20,8 +20,15 @@
             <TextBlock Text="ElevenLabs custom voice ID"/>
             <TextBox x:Name="ElevenLabsCustomVoiceBox" Margin="0,4,0,4"/>
             <TextBlock Text="If set, this voice ID is used instead of the selected voice list entry." TextWrapping="Wrap" Foreground="#5D6470" FontSize="12" Margin="0,0,0,14"/>
-            <TextBlock Text="Speed"/>
-            <Slider x:Name="SpeedSlider" Minimum="0.6" Maximum="1.8" TickFrequency="0.1" Margin="0,4,0,14"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Speed"/>
+                <TextBlock x:Name="SpeedValueText" Grid.Column="1" Foreground="#5D6470"/>
+            </Grid>
+            <Slider x:Name="SpeedSlider" Minimum="0.6" Maximum="1.8" TickFrequency="0.1" Margin="0,4,0,14" ValueChanged="SpeedSlider_ValueChanged"/>
             <CheckBox x:Name="PrivacyModeBox" Content="Privacy mode: use local Windows TTS only" Margin="0,0,0,14"/>
             <CheckBox x:Name="DebugLoggingBox" Content="Enable debug logging to file" Margin="0,0,0,8"/>
             <CheckBox x:Name="DebugTextPreviewBox" Content="Include short captured-text preview in debug logs" Margin="20,0,0,14"/>
@@ -29,7 +36,8 @@
             <TextBlock Text="ElevenLabs API key"/>
             <PasswordBox x:Name="ElevenLabsKeyBox" Margin="0,4,0,14"/>
             <TextBlock Text="ElevenLabs model"/>
-            <TextBox x:Name="ElevenLabsModelBox" Margin="0,4,0,14"/>
+            <ComboBox x:Name="ElevenLabsModelBox" DisplayMemberPath="DisplayName" SelectedValuePath="Id" IsEditable="True" Margin="0,4,0,4"/>
+            <TextBlock x:Name="ElevenLabsModelStatusText" Text="Refresh voices also refreshes available ElevenLabs models." TextWrapping="Wrap" Foreground="#5D6470" FontSize="12" Margin="0,0,0,14"/>
             <CheckBox x:Name="RestoreClipboardBox" Content="Restore previous clipboard text after selected-text capture" Margin="0,0,0,14"/>
             <CheckBox x:Name="AutoHideBox" Content="Auto-hide player after playback" Margin="0,0,0,18"/>
             <CheckBox x:Name="DuckAudioBox" Content="Lower other computer audio while ReadTray is speaking" Margin="0,0,0,8"/>

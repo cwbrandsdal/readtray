@@ -47,6 +47,31 @@ public sealed class ElevenLabsTtsProvider : ITtsProvider
         return voices;
     }
 
+    public async Task<IReadOnlyList<TtsModel>> GetModelsAsync(CancellationToken ct)
+    {
+        var settings = await _settingsService.LoadAsync(ct);
+        if (string.IsNullOrWhiteSpace(settings.ElevenLabsApiKey))
+        {
+            return GetDefaultModels();
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "models");
+        request.Headers.Add("xi-api-key", settings.ElevenLabsApiKey);
+        _logger.LogInformation("Fetching ElevenLabs models.");
+        using var response = await _httpClient.SendAsync(request, ct);
+        await EnsureSuccessWithBodyAsync(response, "ElevenLabs models", ct);
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        var models = document.RootElement
+            .EnumerateArray()
+            .Select(ReadModel)
+            .Where(model => !string.IsNullOrWhiteSpace(model.Id))
+            .DistinctBy(model => model.Id)
+            .ToArray();
+        _logger.LogInformation("Fetched ElevenLabs models. Count={ModelCount}", models.Length);
+        return models.Length > 0 ? models : GetDefaultModels();
+    }
+
     public async IAsyncEnumerable<AudioChunk> StreamSpeechAsync(TtsRequest request, [EnumeratorCancellation] CancellationToken ct)
     {
         var settings = await _settingsService.LoadAsync(ct);
@@ -127,6 +152,30 @@ public sealed class ElevenLabsTtsProvider : ITtsProvider
     private static double ClampElevenLabsSpeed(double speed)
     {
         return Math.Clamp(Math.Round(speed, 2), 0.7, 1.2);
+    }
+
+    private static TtsModel ReadModel(JsonElement model)
+    {
+        var id = GetOptionalString(model, "model_id") ?? GetOptionalString(model, "id") ?? string.Empty;
+        var name = GetOptionalString(model, "name") ?? GetOptionalString(model, "display_name") ?? id;
+        return new TtsModel(id, string.IsNullOrWhiteSpace(name) ? id : $"{name} ({id})");
+    }
+
+    private static string? GetOptionalString(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
+            ? property.GetString()
+            : null;
+    }
+
+    public static IReadOnlyList<TtsModel> GetDefaultModels()
+    {
+        return new[]
+        {
+            new TtsModel("eleven_turbo_v2_5", "Eleven Turbo v2.5 (eleven_turbo_v2_5)"),
+            new TtsModel("eleven_flash_v2_5", "Eleven Flash v2.5 (eleven_flash_v2_5)"),
+            new TtsModel("eleven_multilingual_v2", "Eleven Multilingual v2 (eleven_multilingual_v2)")
+        };
     }
 
     private async Task EnsureSuccessWithBodyAsync(HttpResponseMessage response, string operation, CancellationToken ct)

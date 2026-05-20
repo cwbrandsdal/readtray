@@ -1,5 +1,6 @@
 using System.Windows;
 using ReadTray.Core;
+using ReadTray.Tts.ElevenLabs;
 
 namespace ReadTray.App;
 
@@ -26,6 +27,7 @@ public partial class SettingsWindow : Window
         ProviderBox.ItemsSource = _providers.ToArray();
         ProviderBox.SelectedValue = _settings.SelectedProviderId;
         SpeedSlider.Value = _settings.Speed;
+        UpdateSpeedValueText(_settings.Speed);
         PrivacyModeBox.IsChecked = _settings.PrivacyMode;
         DebugLoggingBox.IsChecked = _settings.DebugLoggingEnabled;
         DebugTextPreviewBox.IsChecked = _settings.DebugLogTextPreview;
@@ -37,8 +39,8 @@ public partial class SettingsWindow : Window
         CheckForUpdatesBox.IsChecked = _settings.CheckForUpdatesOnStartup;
         DuckAudioVolumeSlider.ValueChanged += (_, args) => DuckAudioVolumeText.Text = $"{args.NewValue:0}%";
         ElevenLabsKeyBox.Password = _settings.ElevenLabsApiKey ?? string.Empty;
-        ElevenLabsModelBox.Text = _settings.ElevenLabsModelId;
         ElevenLabsCustomVoiceBox.Text = _settings.ElevenLabsCustomVoiceId ?? string.Empty;
+        await LoadElevenLabsModelsAsync();
         await LoadVoicesAsync();
     }
 
@@ -51,7 +53,53 @@ public partial class SettingsWindow : Window
     }
 
     private async void ProviderBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e) => await LoadVoicesAsync();
-    private async void RefreshVoices_Click(object sender, RoutedEventArgs e) => await LoadVoicesAsync();
+    private async void RefreshVoices_Click(object sender, RoutedEventArgs e)
+    {
+        await LoadElevenLabsModelsAsync();
+        await LoadVoicesAsync();
+    }
+
+    private void SpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        UpdateSpeedValueText(e.NewValue);
+    }
+
+    private void UpdateSpeedValueText(double speed)
+    {
+        if (SpeedValueText is not null)
+        {
+            SpeedValueText.Text = $"{speed * 100:0}%";
+        }
+    }
+
+    private async Task LoadElevenLabsModelsAsync()
+    {
+        var selectedModel = string.IsNullOrWhiteSpace(_settings.ElevenLabsModelId) ? "eleven_turbo_v2_5" : _settings.ElevenLabsModelId;
+        var models = ElevenLabsTtsProvider.GetDefaultModels();
+        ElevenLabsModelStatusText.Text = "Refresh voices also refreshes available ElevenLabs models.";
+
+        if (_providers.FirstOrDefault(provider => provider.Id == "elevenlabs") is ElevenLabsTtsProvider elevenLabs)
+        {
+            try
+            {
+                models = await elevenLabs.GetModelsAsync(CancellationToken.None);
+                ElevenLabsModelStatusText.Text = "Loaded available ElevenLabs models from the API.";
+            }
+            catch (Exception ex)
+            {
+                ElevenLabsModelStatusText.Text = $"Could not load ElevenLabs models from the API. Using defaults. {ex.Message}";
+            }
+        }
+
+        if (!models.Any(model => string.Equals(model.Id, selectedModel, StringComparison.OrdinalIgnoreCase)))
+        {
+            models = models.Concat(new[] { new TtsModel(selectedModel, $"{selectedModel} (custom)") }).ToArray();
+        }
+
+        ElevenLabsModelBox.ItemsSource = models;
+        ElevenLabsModelBox.SelectedValue = selectedModel;
+        ElevenLabsModelBox.Text = selectedModel;
+    }
 
     private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
     {
@@ -113,7 +161,8 @@ public partial class SettingsWindow : Window
         _settings.DuckOtherAudioVolumePercent = Math.Round(DuckAudioVolumeSlider.Value, 0);
         _settings.CheckForUpdatesOnStartup = CheckForUpdatesBox.IsChecked == true;
         _settings.ElevenLabsApiKey = ElevenLabsKeyBox.Password;
-        _settings.ElevenLabsModelId = string.IsNullOrWhiteSpace(ElevenLabsModelBox.Text) ? "eleven_turbo_v2_5" : ElevenLabsModelBox.Text.Trim();
+        var selectedModel = ElevenLabsModelBox.SelectedValue as string ?? ElevenLabsModelBox.Text;
+        _settings.ElevenLabsModelId = string.IsNullOrWhiteSpace(selectedModel) ? "eleven_turbo_v2_5" : selectedModel.Trim();
         _settings.ElevenLabsCustomVoiceId = string.IsNullOrWhiteSpace(ElevenLabsCustomVoiceBox.Text) ? null : ElevenLabsCustomVoiceBox.Text.Trim();
         await _settingsService.SaveAsync(_settings, CancellationToken.None);
         Hide();
