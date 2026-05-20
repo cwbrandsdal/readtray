@@ -27,7 +27,11 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = "0.1.${{ github.run_number }}"
+          [xml]$project = Get-Content src/ReadTray.App/ReadTray.App.csproj
+          $version = $project.Project.PropertyGroup.VersionPrefix | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "VersionPrefix was not found in src/ReadTray.App/ReadTray.App.csproj."
+          }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
 

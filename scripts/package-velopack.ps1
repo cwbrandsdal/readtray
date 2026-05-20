@@ -1,7 +1,7 @@
 param(
     [string]$Configuration = "Release",
     [string]$Runtime = "win-x64",
-    [string]$Version = "0.1.0",
+    [string]$Version = "",
     [string]$Channel = "win"
 )
 
@@ -9,6 +9,15 @@ $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
 $publishDir = Join-Path $repo "artifacts\publish\ReadTray"
 $releaseDir = Join-Path $repo "artifacts\velopack"
+$projectPath = Join-Path $repo "src\ReadTray.App\ReadTray.App.csproj"
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    [xml]$project = Get-Content $projectPath
+    $Version = $project.Project.PropertyGroup.VersionPrefix | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        throw "VersionPrefix was not found in $projectPath."
+    }
+}
 
 & (Join-Path $PSScriptRoot "publish.ps1") `
     -Configuration $Configuration `
