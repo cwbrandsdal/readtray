@@ -10,22 +10,23 @@ It:
 
 1. Computes a version like `0.1.<github run number>`.
 2. Runs tests.
-3. Publishes a self-contained Windows x64 app.
-4. Compresses the publish output into `ReadTray-<version>-win-x64.zip`.
-5. Creates a GitHub Release with the zip and a SHA256 checksum.
+3. Restores the repo-local Velopack CLI tool.
+4. Publishes a self-contained Windows x64 app.
+5. Packages Velopack installer/update assets into `artifacts\velopack`.
+6. Creates a GitHub Release with all Velopack assets.
 
 ## In-App Update Check
 
-The app checks `https://api.github.com/repos/cwbrandsdal/readtray/releases/latest`.
+Installed builds use Velopack's GitHub release source for `https://github.com/cwbrandsdal/readtray`.
 
-If the latest release tag is newer than the running app version, the app prompts the user and opens the release page. This is deliberately conservative for the first public version because replacing a running Windows desktop app safely requires an installer or companion updater process.
+If a newer release is available, the tray update command prompts the user, downloads the update, and restarts ReadTray into the new version. Dev runs and raw publish folders are not installed by Velopack, so they show a clear message and do not try to self-update.
 
-## Next Step: Real Auto-Install
+## Installer Choice
 
-To move from update notification to true auto-install, use one of these paths:
+Velopack is the current installer path because it is closest to the Electron/GitHub Releases update flow:
 
-- MSIX/App Installer: best Windows-native update story, supports Start Menu integration and package identity.
-- Squirrel.Windows or Velopack: closest to Electron-style app update behavior for unpackaged desktop apps.
-- Custom updater executable: possible, but more maintenance because it must download, verify, stop ReadTray, replace files, restart, and roll back on failure.
+- `ReadTray-win-Setup.exe` is the user-facing installer.
+- `ReadTray-<version>-full.nupkg`, `RELEASES`, and the JSON feed files are used by the updater.
+- Unsigned installers will likely trigger Windows trust warnings. Code signing should be added before broad public distribution.
 
-Recommended next step: evaluate Velopack if you want Electron-like GitHub release updates without MSIX packaging constraints.
+MSIX remains a reasonable future option for Microsoft Store or enterprise deployment, but it has more signing/package identity constraints.

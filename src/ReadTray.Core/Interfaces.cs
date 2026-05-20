@@ -47,6 +47,7 @@ public interface IAudioDuckingService
 public interface IUpdateService
 {
     Task<UpdateCheckResult> CheckForUpdatesAsync(CancellationToken ct);
+    Task<UpdateCheckResult> DownloadAndApplyLatestUpdateAsync(IProgress<int>? progress, CancellationToken ct);
 }
 
 public interface ISettingsService

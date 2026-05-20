@@ -35,24 +35,14 @@ jobs:
         shell: pwsh
         run: dotnet test ReadTray.slnx -c Release
 
-      - name: Publish
+      - name: Restore packaging tools
         shell: pwsh
-        run: ./scripts/publish.ps1 -Configuration Release -Runtime win-x64 -Version '${{ steps.version.outputs.version }}'
+        run: dotnet tool restore
 
-      - name: Package
+      - name: Package Velopack installer
         id: package
         shell: pwsh
-        run: |
-          $version = '${{ steps.version.outputs.version }}'
-          $publishDir = Join-Path $PWD 'artifacts/publish/ReadTray'
-          $zip = Join-Path $PWD "artifacts/ReadTray-$version-win-x64.zip"
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zip -Force
-          $hash = Get-FileHash $zip -Algorithm SHA256
-          $shaPath = "$zip.sha256"
-          "$($hash.Hash)  $(Split-Path $zip -Leaf)" | Set-Content $shaPath -Encoding ascii
-          "zip=$zip" >> $env:GITHUB_OUTPUT
-          "sha=$shaPath" >> $env:GITHUB_OUTPUT
+        run: ./scripts/package-velopack.ps1 -Configuration Release -Runtime win-x64 -Version '${{ steps.version.outputs.version }}'
 
       - name: Create GitHub release
         shell: pwsh
@@ -65,15 +55,13 @@ jobs:
           Automated ReadTray release from main.
 
           Install:
-          1. Download the win-x64 zip.
-          2. Extract it to a folder.
-          3. Run ReadTray.App.exe.
+          1. Download ReadTray-win-Setup.exe.
+          2. Run the installer.
 
-          SHA256 checksum is attached.
+          The attached Velopack release assets are used by the in-app updater.
           "@
           gh release create $tag `
-            '${{ steps.package.outputs.zip }}' `
-            '${{ steps.package.outputs.sha }}' `
+            artifacts/velopack/* `
             --title $title `
             --notes $notes `
             --latest

@@ -92,11 +92,11 @@ public sealed class TrayService : IDisposable
                 return;
             }
 
-            var message = $"{result.Message}\n\nCurrent: {result.CurrentVersion}\nLatest: {result.LatestVersion}\n\nOpen the GitHub release page now?";
+            var message = $"{result.Message}\n\nCurrent: {result.CurrentVersion}\nLatest: {result.LatestVersion}\nPackage: {result.AssetName}\n\nDownload and install this update now?";
             var open = System.Windows.MessageBox.Show(message, "ReadTray update available", MessageBoxButton.YesNo, MessageBoxImage.Information);
-            if (open == MessageBoxResult.Yes && !string.IsNullOrWhiteSpace(result.ReleaseUrl))
+            if (open == MessageBoxResult.Yes)
             {
-                Process.Start(new ProcessStartInfo { FileName = result.ReleaseUrl, UseShellExecute = true });
+                await DownloadAndApplyUpdateAsync();
             }
         }
         catch (Exception ex)
@@ -106,6 +106,23 @@ public sealed class TrayService : IDisposable
             {
                 System.Windows.MessageBox.Show($"Update check failed: {ex.Message}", "ReadTray updates", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+    }
+
+    private async Task DownloadAndApplyUpdateAsync()
+    {
+        var progress = new Progress<int>(value =>
+        {
+            if (_notifyIcon is not null)
+            {
+                _notifyIcon.Text = $"ReadTray updating {value}%";
+            }
+        });
+
+        var result = await _updateService.DownloadAndApplyLatestUpdateAsync(progress, CancellationToken.None);
+        if (!result.IsUpdateAvailable)
+        {
+            System.Windows.MessageBox.Show(result.Message ?? "ReadTray is up to date.", "ReadTray updates", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 

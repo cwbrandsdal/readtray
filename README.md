@@ -65,7 +65,17 @@ Windows Start Menu shortcuts use the embedded `.ico` from the executable. The so
 
 ReadTray can check GitHub Releases from the tray menu with `Check for updates`. It can also check on startup when enabled in Settings.
 
-The repository includes a GitHub Actions release workflow that publishes a Windows x64 zip to GitHub Releases on pushes to `main`. See [docs/update-strategy.md](docs/update-strategy.md).
+The repository includes a GitHub Actions release workflow that publishes Velopack installer/update assets to GitHub Releases on pushes to `main`. Installed builds can download and apply updates from the tray menu. See [docs/update-strategy.md](docs/update-strategy.md).
+
+## Installer
+
+Velopack is the recommended installer path for ReadTray because it is closest to Electron-style GitHub Releases updates. Create a local installer package with:
+
+```powershell
+.\scripts\package-velopack.ps1 -Version 0.1.0
+```
+
+See [docs/installer-options.md](docs/installer-options.md) for Velopack vs MSIX tradeoffs.
 
 ## Known Limitations
 
